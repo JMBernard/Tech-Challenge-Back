@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require("cors")
 const connection = require('./db-config');
 const app = express();
 
@@ -12,13 +13,15 @@ connection.connect((err) => {
     }
   });
 
+app.use(express.urlencoded({extend : true}));
 app.use(express.json());
+app.use(cors());
 
-app.get("/", (req, res) => {
-    res.send("Welcome");
+app.get("/", cors(), async (req, res) => {
+    res.send("This is working");
 });
 
-app.get("/api/argonautes", (req, res) => {
+app.get("/api/argonautes", cors(), async (req, res) => {
     connection.query('SELECT * FROM argonautes', (err, result) => {
         if (err) {
             res.status(500).send('Error retrieving argonautes from database');
@@ -28,7 +31,23 @@ app.get("/api/argonautes", (req, res) => {
     })
 })
 
-app.post("/api/argonautes", (req,res) => {
+app.get("/api/argonautes/:id", cors(), async (req, res) => {
+    const argonauteId = req.params.id;
+    connection.query(
+        'SELECT * FROM argonautes WHERE id = ?',
+            [argonauteId],
+        (err, results) => {
+          if (err) {
+            res.status(500).send('Error retrieving argonaute from database');
+          } else {
+            if (results.length) res.json(results[0]);
+            else res.status(404).send('Argonaute not found');
+          }
+        }
+      );
+})
+
+app.post("/api/argonautes", cors(), async (req,res) => {
     const { name, qualities } = req.body
     connection.query(
         'INSERT INTO argonautes (name, qualities) VALUES (?, ?)',
@@ -46,7 +65,7 @@ app.post("/api/argonautes", (req,res) => {
     )
 });
 
-app.put("/api/argonautes/:id", (req,res) => {
+app.put("/api/argonautes/:id", cors(), async (req,res) => {
     const argonauteId = req.params.id;
     const db = connection.promise();
     let existingArgonaute = null;
@@ -67,7 +86,7 @@ app.put("/api/argonautes/:id", (req,res) => {
         });
 });
 
-app.delete('/api/argonautes/:id', (req, res) => {
+app.delete('/api/argonautes/:id', cors(), async (req, res) => {
     connection.query(
         'DELETE FROM argonautes WHERE id = ?',
         [req.params.id],
